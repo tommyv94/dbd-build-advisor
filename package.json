@@ -1,0 +1,92 @@
+{
+  "name": "dbd-build-advisor",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Dead by Daylight perk build advisor with inventory-aware recommendations",
+  "author": "Fog Build Advisor",
+  "type": "module",
+  "main": "electron/main.mjs",
+  "scripts": {
+    "dev": "npm run build && npm run build:engine && concurrently -k -n ui,engine,electron -c green,blue,magenta \"vite build --watch\" \"npm run build:engine:watch\" \"node scripts/wait-and-electron.mjs\"",
+    "dev:web": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:client": "vite",
+    "dev:server": "tsx watch server/index.ts",
+    "build": "tsc -b && vite build",
+    "build:engine": "esbuild server/engine.ts --bundle --platform=node --format=esm --outfile=dist-server/engine.mjs --external:electron",
+    "build:engine:watch": "esbuild server/engine.ts --bundle --platform=node --format=esm --outfile=dist-server/engine.mjs --external:electron --watch",
+    "build:server": "esbuild server/app.ts --bundle --platform=node --format=esm --outfile=dist-server/app.mjs",
+    "build:desktop": "npm run build && npm run build:engine && npm run icons && electron-builder --win",
+    "build:installer": "npm run build:desktop",
+    "icons": "node scripts/generate-icons.mjs",
+    "dev:desktop": "npm run dev",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "start": "tsx server/index.ts"
+  },
+  "dependencies": {
+    "concurrently": "^10.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "openai": "^6.42.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.12.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "electron": "^36.4.0",
+    "electron-builder": "^26.0.12",
+    "esbuild": "^0.25.5",
+    "eslint": "^10.3.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.6.0",
+    "png-to-ico": "^2.1.8",
+    "sharp": "^0.34.5",
+    "tsx": "^4.22.4",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.59.2",
+    "vite": "^8.0.12",
+    "wait-on": "^8.0.3"
+  },
+  "build": {
+    "appId": "com.fogbuild.dbd-advisor",
+    "productName": "Build Advisor",
+    "copyright": "Copyright © 2026",
+    "directories": {
+      "output": "dist-electron",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-server/engine.mjs",
+      "electron/**/*",
+      "build/icon.png",
+      "build/icon.ico",
+      "package.json"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Build Advisor"
+    }
+  }
+}
