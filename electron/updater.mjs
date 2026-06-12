@@ -18,6 +18,8 @@ export function setupAutoUpdater(getMainWindow) {
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.allowDowngrade = false;
+  // Full installer downloads are more reliable across large version jumps (e.g. 1.0.3 → 1.0.11).
+  autoUpdater.disableDifferentialDownload = true;
 
   autoUpdater.on('checking-for-update', () => {
     sendStatus(getMainWindow(), { status: 'checking' });
@@ -59,6 +61,8 @@ export function setupAutoUpdater(getMainWindow) {
 
   ipcMain.handle('app-version', () => app.getVersion());
 
+  ipcMain.handle('install-path', () => app.getPath('exe'));
+
   ipcMain.handle('update-check', async () => {
     if (!app.isPackaged) return { skipped: true, reason: 'dev' };
     const currentVersion = app.getVersion();
@@ -91,9 +95,9 @@ export function setupAutoUpdater(getMainWindow) {
     sendStatus(getMainWindow(), { status: 'installing' });
     // Brief pause so the in-app "installing" UI renders before the app quits.
     setTimeout(() => {
-      // Silent install — no NSIS wizard. Reopens automatically when done.
-      autoUpdater.quitAndInstall(true, true);
-    }, 500);
+      // Non-silent NSIS is more reliable when upgrading from very old installs.
+      autoUpdater.quitAndInstall(false, true);
+    }, 800);
   });
 
   ipcMain.handle('update-open-page', () => {

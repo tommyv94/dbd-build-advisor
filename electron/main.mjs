@@ -5,7 +5,7 @@ import { setupAutoUpdater } from './updater.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const MIN_SPLASH_MS = 1_800;
+const MIN_SPLASH_MS = 4_000;
 const SPLASH_WIDTH = 420;
 const SPLASH_HEIGHT = 300;
 
@@ -14,6 +14,9 @@ let splashWindow = null;
 let engine = null;
 let responseFormatter = null;
 let warmupStartedAt = 0;
+let splashShownAt = 0;
+let splashReady = false;
+let warmupReady = false;
 
 function appRoot() {
   return path.join(__dirname, '..');
@@ -97,10 +100,12 @@ function createSplashWindow() {
   splashWindow.webContents.once('did-finish-load', () => {
     splashWindow?.webContents.send('splash-init', { version: app.getVersion() });
     sendSplashStatus('Entering the Fog…');
+    markSplashReady();
   });
 
   splashWindow.on('closed', () => {
     splashWindow = null;
+    splashReady = false;
   });
 }
 
@@ -134,10 +139,6 @@ function createWindow() {
 
   mainWindow.loadFile(distIndexPath());
 
-  mainWindow.once('ready-to-show', () => {
-    mainWindow?.show();
-  });
-
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
@@ -150,7 +151,15 @@ function revealMainWindow() {
 }
 
 function finishWarmupAndReveal() {
-  const elapsed = Date.now() - warmupStartedAt;
+  warmupReady = true;
+  tryRevealMain();
+}
+
+function tryRevealMain() {
+  if (!warmupReady || !splashReady) return;
+
+  const base = splashShownAt || warmupStartedAt;
+  const elapsed = Date.now() - base;
   const delay = Math.max(0, MIN_SPLASH_MS - elapsed);
 
   setTimeout(() => {
@@ -159,11 +168,28 @@ function finishWarmupAndReveal() {
   }, delay);
 }
 
+function markSplashReady() {
+  if (splashReady) return;
+  splashReady = true;
+  splashShownAt = Date.now();
+  tryRevealMain();
+}
+
 async function bootstrap() {
   warmupStartedAt = Date.now();
+  warmupReady = false;
+  splashReady = false;
+  splashShownAt = 0;
 
   createSplashWindow();
   sendSplashStatus('Starting advisor engine…');
+
+  setTimeout(() => {
+    if (!splashReady) {
+      console.warn('Splash load timeout — continuing startup');
+      markSplashReady();
+    }
+  }, 5_000);
 
   await startEngine();
 
@@ -232,6 +258,17 @@ app.whenReady().then(async () => {
   if (process.platform === 'win32') {
     app.setAppUserModelId('com.fogbuild.dbd-advisor');
   }
+
+  const gotLock = app.requestSingleInstanceLock();
+  if (!gotLock) {
+    app.quit();
+    return;
+  }
+
+  app.on('second-instance', () => {
+    revealMainWindow();
+  });
+
   try {
     await bootstrap();
   } catch (err) {

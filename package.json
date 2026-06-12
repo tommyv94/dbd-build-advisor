@@ -128,7 +128,8 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Build Advisor",
-      "runAfterFinish": true
+      "runAfterFinish": true,
+      "uninstallDisplayName": "Build Advisor"
     }
   }
 }

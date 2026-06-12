@@ -475,6 +475,7 @@ function App({ warmup }: AppProps) {
         <FogAtmosphere />
         <TitleBar subtle ambientMuted={ambientMuted} onToggleAmbient={toggleAmbientMute} />
         <OnboardingWizard
+          key={onboardingFromSettings ? 'onboarding-rerun' : 'onboarding-first'}
           settings={settings}
           survivorChars={survivorChars}
           killerChars={killerChars}

@@ -75,7 +75,10 @@ declare global {
         close: () => Promise<void>;
       };
       onUpdateStatus?: (callback: (payload: UpdateStatusPayload) => void) => () => void;
+      /** Synchronous installed version from preload (preferred on desktop) */
+      appVersion?: string;
       getAppVersion?: () => Promise<string>;
+      getInstallPath?: () => Promise<string>;
       checkForUpdates?: () => Promise<{
         ok?: boolean;
         skipped?: boolean;

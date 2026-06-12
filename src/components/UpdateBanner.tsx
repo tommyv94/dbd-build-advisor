@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { isDesktopApp, type UpdateStatusPayload } from '../lib/api-base';
+import { useAppVersion } from '../hooks/useAppVersion';
 
 import { UpdateInstallOverlay } from './UpdateInstallOverlay';
 
@@ -63,6 +64,11 @@ export function UpdateBanner({ initialStatus }: { initialStatus?: UpdateStatus |
       <div className="update-banner">
         <div className="update-banner-text">
           <strong>New version available</strong> — v{update.version} is ready to download.
+          <p className="update-banner-hint">
+            The installer replaces your current copy in place and updates shortcuts automatically. If this keeps
+            appearing after restart, the install may have failed — use Download manually once, then in-app updates
+            should work.
+          </p>
           {notes && (
             <details className="update-banner-notes">
               <summary>What&apos;s new</summary>
@@ -148,8 +154,17 @@ export function UpdateBanner({ initialStatus }: { initialStatus?: UpdateStatus |
 
 /** Manual check from settings */
 export function UpdateCheckButton() {
+  const appVersion = useAppVersion();
   const [checking, setChecking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [installPath, setInstallPath] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isDesktopApp() || !window.electronAPI?.getInstallPath) return;
+    void window.electronAPI.getInstallPath().then((path) => {
+      if (path) setInstallPath(path);
+    });
+  }, []);
 
   if (!isDesktopApp() || !window.electronAPI?.checkForUpdates) return null;
 
@@ -185,7 +200,11 @@ export function UpdateCheckButton() {
       <button type="button" className="update-check-link" onClick={() => window.electronAPI?.openReleasePage?.()}>
         Download latest installer
       </button>
+      {installPath && <p className="update-check-path">Running from: {installPath}</p>}
       {message && <p className="update-check-msg">{message}</p>}
+      {!checking && !message && (
+        <p className="update-check-msg muted">Installed version: v{appVersion}</p>
+      )}
     </div>
   );
 }
