@@ -9,6 +9,7 @@ import { FogAtmosphere } from './components/FogAtmosphere';
 import { AmbientMuteButton } from './components/AmbientMuteButton';
 import { LandingPage } from './components/LandingPage';
 import { TitleBar } from './components/TitleBar';
+import { UpdateBanner, UpdateCheckButton } from './components/UpdateBanner';
 import { useAmbientAudio } from './hooks/useAmbientAudio';
 import { playEnterFogStinger } from './lib/ui-sounds';
 import { summarizeBuildIssues, validateSavedBuild } from './lib/build-staleness';
@@ -448,11 +449,13 @@ function App() {
               }
             />
           </label>
+          <UpdateCheckButton />
         </div>
       )}
 
       {error && <div className="error-banner">{error}</div>}
       {notice && <div className="notice-banner">{notice}</div>}
+      <UpdateBanner />
 
       <nav className="tab-nav dbd-tabs">
         <button

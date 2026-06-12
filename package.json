@@ -1,7 +1,7 @@
 {
   "name": "dbd-build-advisor",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Dead by Daylight perk build advisor with inventory-aware recommendations",
   "author": "Fog Build Advisor",
   "type": "module",
@@ -17,6 +17,7 @@
     "build:server": "esbuild server/app.ts --bundle --platform=node --format=esm --outfile=dist-server/app.mjs",
     "build:desktop": "npm run build && npm run build:engine && npm run icons && electron-builder --win",
     "build:installer": "npm run build:desktop",
+    "release": "npm run build && npm run build:engine && npm run icons && electron-builder --win --publish always",
     "icons": "node scripts/generate-icons.mjs",
     "dev:desktop": "npm run dev",
     "lint": "eslint .",
@@ -26,6 +27,7 @@
   "dependencies": {
     "concurrently": "^10.0.3",
     "cors": "^2.8.6",
+    "electron-updater": "^6.8.9",
     "express": "^5.2.1",
     "openai": "^6.42.0",
     "react": "^19.2.6",
@@ -70,8 +72,14 @@
       "build/icon.ico",
       "package.json"
     ],
+    "publish": {
+      "provider": "github",
+      "owner": "tommyv94",
+      "repo": "dbd-build-advisor"
+    },
     "win": {
       "icon": "build/icon.ico",
+      "verifyUpdateCodeSignature": false,
       "target": [
         {
           "target": "nsis",

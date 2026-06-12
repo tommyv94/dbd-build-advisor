@@ -1,5 +1,13 @@
 /** Desktop app API — calls go directly to the advisor engine via Electron IPC (no network). */
 
+export type UpdateStatusPayload =
+  | { status: 'checking' }
+  | { status: 'idle' }
+  | { status: 'available'; version: string; releaseNotes?: string }
+  | { status: 'downloading'; percent: number }
+  | { status: 'downloaded'; version: string }
+  | { status: 'error'; message: string };
+
 export async function initApiBase(): Promise<void> {
   if (window.location.protocol === 'file:' && !window.electronAPI?.fetchApi) {
     throw new Error('Desktop API bridge failed to load. Try restarting the app.');
@@ -60,6 +68,17 @@ declare global {
         maximize: () => Promise<void>;
         close: () => Promise<void>;
       };
+      onUpdateStatus?: (callback: (payload: UpdateStatusPayload) => void) => () => void;
+      checkForUpdates?: () => Promise<{
+        ok?: boolean;
+        skipped?: boolean;
+        reason?: string;
+        version?: string | null;
+        message?: string;
+      }>;
+      downloadUpdate?: () => Promise<{ ok?: boolean; skipped?: boolean }>;
+      installUpdate?: () => Promise<void>;
+      openReleasePage?: () => Promise<void>;
     };
   }
 }

@@ -1,0 +1,93 @@
+import { app, ipcMain, shell } from 'electron';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const { autoUpdater } = require('electron-updater');
+
+const RELEASE_PAGE = 'https://github.com/tommyv94/dbd-build-advisor/releases/latest';
+const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
+
+function sendStatus(win, payload) {
+  if (win && !win.isDestroyed()) {
+    win.webContents.send('update-status', payload);
+  }
+}
+
+export function setupAutoUpdater(getMainWindow) {
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.allowDowngrade = false;
+
+  autoUpdater.on('checking-for-update', () => {
+    sendStatus(getMainWindow(), { status: 'checking' });
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    sendStatus(getMainWindow(), {
+      status: 'available',
+      version: info.version,
+      releaseNotes: typeof info.releaseNotes === 'string' ? info.releaseNotes : undefined,
+    });
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    sendStatus(getMainWindow(), { status: 'idle' });
+  });
+
+  autoUpdater.on('download-progress', (progress) => {
+    sendStatus(getMainWindow(), {
+      status: 'downloading',
+      percent: progress.percent,
+    });
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    sendStatus(getMainWindow(), {
+      status: 'downloaded',
+      version: info.version,
+    });
+  });
+
+  autoUpdater.on('error', (err) => {
+    console.warn('Auto-update error:', err.message);
+    sendStatus(getMainWindow(), {
+      status: 'error',
+      message: err.message,
+    });
+  });
+
+  ipcMain.handle('update-check', async () => {
+    if (!app.isPackaged) return { skipped: true, reason: 'dev' };
+    try {
+      const result = await autoUpdater.checkForUpdates();
+      return { ok: true, version: result?.updateInfo?.version ?? null };
+    } catch (err) {
+      return { ok: false, message: String(err) };
+    }
+  });
+
+  ipcMain.handle('update-download', async () => {
+    if (!app.isPackaged) return { skipped: true };
+    await autoUpdater.downloadUpdate();
+    return { ok: true };
+  });
+
+  ipcMain.handle('update-install', () => {
+    autoUpdater.quitAndInstall(false, true);
+  });
+
+  ipcMain.handle('update-open-page', () => {
+    void shell.openExternal(RELEASE_PAGE);
+  });
+
+  if (!app.isPackaged) return;
+
+  const runCheck = () => {
+    void autoUpdater.checkForUpdates().catch((err) => {
+      console.warn('Update check failed:', err.message);
+    });
+  };
+
+  setTimeout(runCheck, 12_000);
+  setInterval(runCheck, CHECK_INTERVAL_MS);
+}

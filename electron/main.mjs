@@ -1,6 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { setupAutoUpdater } from './updater.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -123,6 +124,7 @@ app.whenReady().then(async () => {
   try {
     await startEngine();
     createWindow();
+    setupAutoUpdater(() => mainWindow);
   } catch (err) {
     console.error(err);
     app.quit();
