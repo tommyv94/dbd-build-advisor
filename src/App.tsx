@@ -10,6 +10,7 @@ import { AmbientMuteButton } from './components/AmbientMuteButton';
 import { LandingPage } from './components/LandingPage';
 import { TitleBar } from './components/TitleBar';
 import { UpdateBanner, UpdateCheckButton } from './components/UpdateBanner';
+import { APP_VERSION } from './lib/app-version';
 import { useAmbientAudio } from './hooks/useAmbientAudio';
 import { playEnterFogStinger } from './lib/ui-sounds';
 import { summarizeBuildIssues, validateSavedBuild } from './lib/build-staleness';
@@ -450,6 +451,7 @@ function App() {
             />
           </label>
           <UpdateCheckButton />
+          <p className="app-version">Build Advisor v{APP_VERSION}</p>
         </div>
       )}
 

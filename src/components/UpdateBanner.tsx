@@ -34,7 +34,7 @@ export function UpdateBanner() {
     return (
       <div className="update-banner">
         <div className="update-banner-text">
-          <strong>Update available</strong> — v{update.version} is ready to download.
+          <strong>New version available</strong> — v{update.version} is ready to download.
         </div>
         <div className="update-banner-actions">
           <button type="button" className="update-banner-primary" onClick={() => void handleDownload()}>

@@ -63,7 +63,7 @@ export function LandingPage({ onEnter, ready = true, ambientMuted, onToggleAmbie
         </button>
         {ready && (
           <p className="landing-press-hint" aria-hidden>
-            Press Enter or Space to continue
+            Press Enter or Space to enter the fog
           </p>
         )}
       </div>

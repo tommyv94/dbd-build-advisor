@@ -1,7 +1,7 @@
 {
   "name": "dbd-build-advisor",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Dead by Daylight perk build advisor with inventory-aware recommendations",
   "author": "Fog Build Advisor",
   "type": "module",
