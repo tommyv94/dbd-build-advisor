@@ -1,11 +1,11 @@
 import { EntityMark } from './EntityMark';
 import { useAppVersion } from '../hooks/useAppVersion';
 
-/** In-window warmup placeholder (dev / hidden main window while splash runs). */
+/** In-window warmup — visible while the main window loads behind the Electron splash. */
 export function WarmupSplash({ status = 'Entering the Fog…' }: { status?: string }) {
   const appVersion = useAppVersion();
   return (
-    <div className="warmup-splash">
+    <div className="warmup-splash warmup-splash-window">
       <div className="warmup-splash-fog" aria-hidden />
       <div className="warmup-splash-content">
         <EntityMark size="lg" />

@@ -3043,6 +3043,10 @@ body {
   z-index: 500;
 }
 
+.warmup-splash-window {
+  z-index: 1;
+}
+
 .warmup-splash-fog,
 .install-overlay-vignette {
   position: absolute;
