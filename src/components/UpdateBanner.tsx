@@ -203,7 +203,9 @@ export function UpdateCheckButton() {
       {installPath && <p className="update-check-path">Running from: {installPath}</p>}
       {message && <p className="update-check-msg">{message}</p>}
       {!checking && !message && (
-        <p className="update-check-msg muted">Installed version: v{appVersion}</p>
+        <p className="update-check-msg muted">
+          Installed version: v{appVersion} · delta updates on
+        </p>
       )}
     </div>
   );

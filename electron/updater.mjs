@@ -18,8 +18,8 @@ export function setupAutoUpdater(getMainWindow) {
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.allowDowngrade = false;
-  // Full installer downloads are more reliable across large version jumps (e.g. 1.0.3 → 1.0.11).
-  autoUpdater.disableDifferentialDownload = true;
+  // Use blockmap deltas when available (smaller downloads between patch releases).
+  autoUpdater.disableDifferentialDownload = false;
 
   autoUpdater.on('checking-for-update', () => {
     sendStatus(getMainWindow(), { status: 'checking' });
@@ -95,8 +95,7 @@ export function setupAutoUpdater(getMainWindow) {
     sendStatus(getMainWindow(), { status: 'installing' });
     // Brief pause so the in-app "installing" UI renders before the app quits.
     setTimeout(() => {
-      // Non-silent NSIS is more reliable when upgrading from very old installs.
-      autoUpdater.quitAndInstall(false, true);
+      autoUpdater.quitAndInstall(true, true);
     }, 800);
   });
 
