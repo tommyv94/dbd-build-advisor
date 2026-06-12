@@ -637,6 +637,11 @@ body {
   border-color: rgba(232, 194, 82, 0.45);
 }
 
+.update-banner-error {
+  background: rgba(224, 40, 40, 0.12);
+  border-color: rgba(224, 40, 40, 0.45);
+}
+
 .update-banner-text strong {
   color: var(--text);
 }

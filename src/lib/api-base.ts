@@ -69,10 +69,14 @@ declare global {
         close: () => Promise<void>;
       };
       onUpdateStatus?: (callback: (payload: UpdateStatusPayload) => void) => () => void;
+      getAppVersion?: () => Promise<string>;
       checkForUpdates?: () => Promise<{
         ok?: boolean;
         skipped?: boolean;
         reason?: string;
+        currentVersion?: string;
+        latestVersion?: string;
+        updateAvailable?: boolean;
         version?: string | null;
         message?: string;
       }>;

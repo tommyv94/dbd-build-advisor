@@ -26,6 +26,11 @@ export function UpdateBanner() {
     window.electronAPI?.openReleasePage?.();
   }, []);
 
+  const handleRetryCheck = useCallback(async () => {
+    setUpdate({ status: 'checking' });
+    await window.electronAPI?.checkForUpdates?.();
+  }, []);
+
   if (!update || update.status === 'idle' || update.status === 'checking') return null;
 
   if (update.status === 'available' && dismissed === update.version) return null;
@@ -84,6 +89,24 @@ export function UpdateBanner() {
     );
   }
 
+  if (update.status === 'error') {
+    return (
+      <div className="update-banner update-banner-error">
+        <div className="update-banner-text">
+          <strong>Update check failed</strong> — {update.message}
+        </div>
+        <div className="update-banner-actions">
+          <button type="button" className="update-banner-primary" onClick={() => void handleRetryCheck()}>
+            Try again
+          </button>
+          <button type="button" className="update-banner-secondary" onClick={handleOpenPage}>
+            Download manually
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return null;
 }
 
@@ -107,12 +130,14 @@ export function UpdateCheckButton() {
             const result = await window.electronAPI!.checkForUpdates!();
             if (result.skipped) {
               setMessage('Updates are only checked in the installed app.');
-            } else if (result.ok && result.version) {
-              setMessage(`Update v${result.version} found — look for the banner above.`);
-            } else if (result.ok) {
-              setMessage('You’re on the latest version.');
+            } else if (!result.ok) {
+              setMessage(result.message ?? 'Could not check for updates.');
+            } else if (result.updateAvailable && result.latestVersion) {
+              setMessage(
+                `Update v${result.latestVersion} available (you have v${result.currentVersion ?? '?'}). Use the banner above.`,
+              );
             } else {
-              setMessage('Could not check for updates. Try “Download latest” below.');
+              setMessage(`You're on the latest version (v${result.currentVersion ?? '?'}).`);
             }
           } finally {
             setChecking(false);

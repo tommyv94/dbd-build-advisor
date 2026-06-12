@@ -392,7 +392,10 @@ function App() {
               <div className="header-titles">
                 <p className="header-dbd-title">Dead by Daylight</p>
                 <h1 className="header-advisor-title">Build Advisor</h1>
-                <p className="header-sub">{meta ? `Patch ${meta.perkVersion}` : 'Syncing…'}</p>
+                <p className="header-sub">
+                  {meta ? `Patch ${meta.perkVersion}` : 'Syncing…'}
+                  {isDesktopApp() ? ` · v${APP_VERSION}` : ''}
+                </p>
               </div>
             </div>
 

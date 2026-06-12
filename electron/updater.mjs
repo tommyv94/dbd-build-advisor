@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const { autoUpdater } = require('electron-updater');
+const semver = require('semver');
 
 const RELEASE_PAGE = 'https://github.com/tommyv94/dbd-build-advisor/releases/latest';
 const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
@@ -56,13 +57,27 @@ export function setupAutoUpdater(getMainWindow) {
     });
   });
 
+  ipcMain.handle('app-version', () => app.getVersion());
+
   ipcMain.handle('update-check', async () => {
     if (!app.isPackaged) return { skipped: true, reason: 'dev' };
+    const currentVersion = app.getVersion();
     try {
       const result = await autoUpdater.checkForUpdates();
-      return { ok: true, version: result?.updateInfo?.version ?? null };
+      const latestVersion = result?.updateInfo?.version ?? currentVersion;
+      const updateAvailable =
+        semver.valid(latestVersion) && semver.valid(currentVersion)
+          ? semver.gt(latestVersion, currentVersion)
+          : latestVersion !== currentVersion;
+      return {
+        ok: true,
+        currentVersion,
+        latestVersion,
+        updateAvailable,
+        version: updateAvailable ? latestVersion : null,
+      };
     } catch (err) {
-      return { ok: false, message: String(err) };
+      return { ok: false, currentVersion, message: err?.message ?? String(err) };
     }
   });
 
