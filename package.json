@@ -75,7 +75,8 @@
     "publish": {
       "provider": "github",
       "owner": "tommyv94",
-      "repo": "dbd-build-advisor"
+      "repo": "dbd-build-advisor",
+      "releaseType": "release"
     },
     "win": {
       "icon": "build/icon.ico",
