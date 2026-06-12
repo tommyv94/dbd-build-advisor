@@ -1,7 +1,7 @@
 {
   "name": "dbd-build-advisor",
   "private": true,
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Dead by Daylight perk build advisor with inventory-aware recommendations",
   "author": "Fog Build Advisor",
   "type": "module",
@@ -15,9 +15,13 @@
     "build:engine": "esbuild server/engine.ts --bundle --platform=node --format=esm --outfile=dist-server/engine.mjs --external:electron",
     "build:engine:watch": "esbuild server/engine.ts --bundle --platform=node --format=esm --outfile=dist-server/engine.mjs --external:electron --watch",
     "build:server": "esbuild server/app.ts --bundle --platform=node --format=esm --outfile=dist-server/app.mjs",
-    "build:desktop": "npm run build && npm run build:engine && npm run icons && electron-builder --win",
-    "build:installer": "npm run build:desktop",
-    "release": "npm run build && npm run build:engine && npm run icons && electron-builder --win --publish always",
+    "build:desktop": "npm run build && npm run build:engine && npm run icons && electron-builder --win --mac",
+    "build:desktop:win": "npm run build && npm run build:engine && npm run icons && electron-builder --win",
+    "build:desktop:mac": "npm run build && npm run build:engine && npm run icons && electron-builder --mac",
+    "build:installer": "npm run build:desktop:win",
+    "release": "npm run build && npm run build:engine && npm run icons && electron-builder --win --mac --publish always",
+    "release:win": "npm run build && npm run build:engine && npm run icons && electron-builder --win --publish always",
+    "release:mac": "npm run build && npm run build:engine && npm run icons && electron-builder --mac --publish always",
     "icons": "node scripts/generate-icons.mjs",
     "dev:desktop": "npm run dev",
     "lint": "eslint .",
@@ -81,6 +85,7 @@
     "win": {
       "icon": "build/icon.ico",
       "verifyUpdateCodeSignature": false,
+      "artifactName": "${productName} Setup ${version}.${ext}",
       "target": [
         {
           "target": "nsis",
@@ -89,6 +94,32 @@
           ]
         }
       ]
+    },
+    "mac": {
+      "icon": "build/icon.png",
+      "category": "public.app-category.games",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "identity": null
+    },
+    "dmg": {
+      "title": "${productName} ${version}",
+      "sign": false
     },
     "nsis": {
       "oneClick": true,

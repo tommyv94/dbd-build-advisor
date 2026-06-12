@@ -4,6 +4,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   isDesktop: true,
+  platform: process.platform,
   fetchApi: (path, init) => ipcRenderer.invoke('api-fetch', path, init),
   exportProfiles: (json, defaultName) => ipcRenderer.invoke('export-profiles', json, defaultName),
   importProfiles: () => ipcRenderer.invoke('import-profiles'),

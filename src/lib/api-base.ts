@@ -48,10 +48,15 @@ export function isDesktopApp(): boolean {
   return Boolean(window.electronAPI?.isDesktop);
 }
 
+export function isMacDesktop(): boolean {
+  return window.electronAPI?.platform === 'darwin';
+}
+
 declare global {
   interface Window {
     electronAPI?: {
       isDesktop: boolean;
+      platform?: string;
       fetchApi: (
         path: string,
         init?: { method?: string; headers?: Record<string, string>; body?: string },

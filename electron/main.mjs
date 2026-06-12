@@ -40,6 +40,8 @@ function iconPath() {
 }
 
 function createWindow() {
+  const isMac = process.platform === 'darwin';
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 860,
@@ -51,6 +53,12 @@ function createWindow() {
     backgroundColor: '#080808',
     autoHideMenuBar: true,
     show: false,
+    ...(isMac
+      ? {
+          titleBarStyle: 'hidden',
+          trafficLightPosition: { x: 12, y: 14 },
+        }
+      : {}),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,

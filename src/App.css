@@ -103,6 +103,14 @@ body {
   min-width: 0;
 }
 
+.window-titlebar-mac .window-titlebar-drag {
+  padding-left: 4.75rem;
+}
+
+.window-titlebar-mac .window-titlebar-controls {
+  display: none;
+}
+
 .window-titlebar-mark {
   width: 10px;
   height: 10px;
