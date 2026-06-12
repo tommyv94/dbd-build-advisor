@@ -106,6 +106,22 @@ jobs:
           echo "## Release assets for $TAG" >> "$GITHUB_STEP_SUMMARY"
           ls -la dist-electron/ | tee -a "$GITHUB_STEP_SUMMARY"
 
+          # Artifact upload/download can mangle spaces in .exe names; align with latest.yml.
+          if [ -f dist-electron/latest.yml ]; then
+            expected_exe=$(grep '^path:' dist-electron/latest.yml | awk '{print $2}')
+            if [ -n "$expected_exe" ] && [ ! -f "dist-electron/$expected_exe" ]; then
+              actual_exe=$(find dist-electron -maxdepth 1 -name '*Setup*.exe' -print -quit)
+              if [ -n "$actual_exe" ]; then
+                echo "Renaming $(basename "$actual_exe") -> $expected_exe"
+                mv "$actual_exe" "dist-electron/$expected_exe"
+                actual_blockmap="${actual_exe}.blockmap"
+                if [ -f "$actual_blockmap" ]; then
+                  mv "$actual_blockmap" "dist-electron/${expected_exe}.blockmap"
+                fi
+              fi
+            fi
+          fi
+
           assets=()
           while IFS= read -r -d '' file; do
             assets+=("$file")

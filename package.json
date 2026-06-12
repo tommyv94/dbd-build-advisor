@@ -1,7 +1,7 @@
 {
   "name": "dbd-build-advisor",
   "private": true,
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "Dead by Daylight perk build advisor with inventory-aware recommendations",
   "author": "Fog Build Advisor",
   "type": "module",
@@ -85,7 +85,7 @@
     "win": {
       "icon": "build/icon.ico",
       "verifyUpdateCodeSignature": false,
-      "artifactName": "${productName} Setup ${version}.${ext}",
+      "artifactName": "Build-Advisor-Setup-${version}.${ext}",
       "target": [
         {
           "target": "nsis",
