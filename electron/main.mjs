@@ -8,6 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let mainWindow = null;
 let engine = null;
 let responseFormatter = null;
+let scheduleUpdateCheck = () => {};
 
 function appRoot() {
   return path.join(__dirname, '..');
@@ -62,6 +63,7 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
+    scheduleUpdateCheck();
   });
 
   mainWindow.on('closed', () => {
@@ -124,7 +126,8 @@ app.whenReady().then(async () => {
   try {
     await startEngine();
     createWindow();
-    setupAutoUpdater(() => mainWindow);
+    const updater = setupAutoUpdater(() => mainWindow);
+    scheduleUpdateCheck = updater.scheduleLaunchCheck;
   } catch (err) {
     console.error(err);
     app.quit();

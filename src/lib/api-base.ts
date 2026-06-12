@@ -6,6 +6,7 @@ export type UpdateStatusPayload =
   | { status: 'available'; version: string; releaseNotes?: string }
   | { status: 'downloading'; percent: number }
   | { status: 'downloaded'; version: string }
+  | { status: 'installing' }
   | { status: 'error'; message: string };
 
 export async function initApiBase(): Promise<void> {

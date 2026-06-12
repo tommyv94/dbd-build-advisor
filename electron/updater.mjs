@@ -7,6 +7,7 @@ const semver = require('semver');
 
 const RELEASE_PAGE = 'https://github.com/tommyv94/dbd-build-advisor/releases/latest';
 const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
+const LAUNCH_CHECK_DELAY_MS = 3_000;
 
 function sendStatus(win, payload) {
   if (win && !win.isDestroyed()) {
@@ -88,14 +89,17 @@ export function setupAutoUpdater(getMainWindow) {
   });
 
   ipcMain.handle('update-install', () => {
-    autoUpdater.quitAndInstall(false, true);
+    sendStatus(getMainWindow(), { status: 'installing' });
+    // Brief pause so the in-app "installing" UI renders before the app quits.
+    setTimeout(() => {
+      // Silent install — no NSIS wizard. Reopens automatically when done.
+      autoUpdater.quitAndInstall(true, true);
+    }, 500);
   });
 
   ipcMain.handle('update-open-page', () => {
     void shell.openExternal(RELEASE_PAGE);
   });
-
-  if (!app.isPackaged) return;
 
   const runCheck = () => {
     void autoUpdater.checkForUpdates().catch((err) => {
@@ -103,6 +107,15 @@ export function setupAutoUpdater(getMainWindow) {
     });
   };
 
-  setTimeout(runCheck, 12_000);
+  if (!app.isPackaged) {
+    return { runCheck, scheduleLaunchCheck: () => {} };
+  }
+
   setInterval(runCheck, CHECK_INTERVAL_MS);
+
+  const scheduleLaunchCheck = () => {
+    setTimeout(runCheck, LAUNCH_CHECK_DELAY_MS);
+  };
+
+  return { runCheck, scheduleLaunchCheck };
 }

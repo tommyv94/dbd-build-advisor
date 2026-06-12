@@ -75,15 +75,26 @@ export function UpdateBanner() {
     return (
       <div className="update-banner update-banner-ready">
         <div className="update-banner-text">
-          <strong>Update ready</strong> — v{update.version} downloaded. Restart to install.
+          <strong>Update ready</strong> — v{update.version} downloaded. Restart to apply.
         </div>
         <div className="update-banner-actions">
           <button type="button" className="update-banner-primary" onClick={handleInstall}>
-            Restart &amp; install
+            Restart &amp; update
           </button>
           <button type="button" className="update-banner-dismiss" onClick={() => setDismissed(update.version)}>
             Later
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (update.status === 'installing') {
+    return (
+      <div className="update-overlay" role="alert" aria-live="assertive">
+        <div className="update-overlay-card">
+          <strong>Updating Build Advisor</strong>
+          <p>Installing the update and restarting…</p>
         </div>
       </div>
     );
