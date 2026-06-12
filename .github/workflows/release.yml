@@ -28,11 +28,23 @@ jobs:
       - name: Build Windows installer
         run: npm run build:desktop:win
 
+      - name: Verify Windows release artifacts
+        shell: pwsh
+        run: |
+          $yml = Get-ChildItem dist-electron/latest.yml -ErrorAction SilentlyContinue
+          $exe = Get-ChildItem dist-electron/*Setup*.exe -ErrorAction SilentlyContinue
+          if (-not $yml) { throw 'Missing dist-electron/latest.yml' }
+          if (-not $exe) { throw 'Missing Windows Setup .exe' }
+          Write-Host "Windows artifacts OK: $($exe.Name), latest.yml"
+
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
           name: win-installer
-          path: dist-electron/
+          path: |
+            dist-electron/latest.yml
+            dist-electron/*.exe
+            dist-electron/*.exe.blockmap
           if-no-files-found: error
 
   build-mac:
@@ -55,11 +67,22 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
+      - name: Verify macOS release artifacts
+        run: |
+          test -f dist-electron/latest-mac.yml
+          test -n "$(find dist-electron -maxdepth 1 -name '*.dmg' -print -quit)"
+          echo "macOS artifacts OK"
+
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: mac-installer
-          path: dist-electron/
+          path: |
+            dist-electron/latest-mac.yml
+            dist-electron/*.dmg
+            dist-electron/*.dmg.blockmap
+            dist-electron/*.zip
+            dist-electron/*.zip.blockmap
           if-no-files-found: error
 
   publish-release:
@@ -80,7 +103,8 @@ jobs:
           TAG="${GITHUB_REF#refs/tags/}"
           REPO="${{ github.repository }}"
 
-          ls -la dist-electron/
+          echo "## Release assets for $TAG" >> "$GITHUB_STEP_SUMMARY"
+          ls -la dist-electron/ | tee -a "$GITHUB_STEP_SUMMARY"
 
           assets=()
           while IFS= read -r -d '' file; do
@@ -92,6 +116,13 @@ jobs:
             exit 1
           fi
 
+          for required in latest.yml latest-mac.yml; do
+            if ! find dist-electron -maxdepth 1 -name "$required" -print -quit | grep -q .; then
+              echo "Missing required file: $required"
+              exit 1
+            fi
+          done
+
           if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
             echo "Replacing existing release for $TAG"
             gh release delete "$TAG" --repo "$REPO" --yes
@@ -101,6 +132,8 @@ jobs:
             --repo "$REPO" \
             --title "Build Advisor ${TAG#v}" \
             --generate-notes
+
+          echo "Published ${#assets[@]} assets to $TAG" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Verify release has Windows and macOS assets
         env:
