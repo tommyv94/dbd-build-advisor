@@ -61,7 +61,7 @@ jobs:
           for id in $(gh api "repos/$REPO/releases" --jq ".[] | select(.tag_name==\"$TAG\") | .id"); do
             names=$(gh api "repos/$REPO/releases/$id/assets" --jq '.[].name' | tr '\n' ' ')
             echo "Release $id assets: $names"
-            if echo "$names" | grep -qE 'latest\.yml|latest-mac\.yml|\.exe|\.dmg|\.zip'; then
+            if echo "$names" | grep -qE '(^| )latest\.yml|(^| )latest-mac\.yml|Setup[^ ]*\.exe$|[^ ]+\.dmg$|[^ ]+\.zip$'; then
               echo "Keeping release $id"
             else
               echo "Deleting incomplete release $id for $TAG"
@@ -82,7 +82,7 @@ jobs:
           for id in $(gh api "repos/$REPO/releases" --jq ".[] | select(.tag_name==\"$TAG\") | .id"); do
             names=$(gh api "repos/$REPO/releases/$id/assets" --jq '.[].name' | tr '\n' ' ')
             echo "Release $id assets: $names"
-            if echo "$names" | grep -qE 'latest\.yml|latest-mac\.yml|\.exe|\.dmg|\.zip'; then
+            if echo "$names" | grep -qE '(^| )latest\.yml|(^| )latest-mac\.yml|Setup[^ ]*\.exe$|[^ ]+\.dmg$|[^ ]+\.zip$'; then
               echo "Keeping release $id"
             else
               echo "Deleting incomplete release $id for $TAG"
