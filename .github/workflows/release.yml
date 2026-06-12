@@ -30,6 +30,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Remove incomplete duplicate release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          REPO="${{ github.repository }}"
+          for id in $(gh api "repos/$REPO/releases" --jq ".[] | select(.tag_name==\"$TAG\") | .id"); do
+            if ! gh api "repos/$REPO/releases/$id/assets" --jq '.[].name' | grep -qx 'latest.yml'; then
+              echo "Deleting incomplete release $id for $TAG"
+              gh api -X DELETE "repos/$REPO/releases/$id"
+            fi
+          done
+
       - name: Verify release has updater metadata
         shell: bash
         env:
