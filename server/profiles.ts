@@ -117,7 +117,7 @@ export function createProfile(store: ProfileStore, name: string): ProfileStore {
 export function updateProfile(
   store: ProfileStore,
   profileId: string,
-  patch: Partial<Pick<PlayerProfile, 'name' | 'settings' | 'openaiApiKey' | 'savedBuilds'>>,
+  patch: Partial<Pick<PlayerProfile, 'name' | 'settings' | 'openaiApiKey' | 'savedBuilds' | 'onboardingComplete'>>,
 ): ProfileStore {
   return {
     ...store,

@@ -2,6 +2,7 @@ import type { CharacterGuideSuggestion } from '../types';
 
 interface SuggestionBuildCardProps {
   suggestion: CharacterGuideSuggestion;
+  onSave?: (build: import('../types').BuildSuggestion, defaultName: string) => void;
 }
 
 function splitParagraphs(text: string): string[] {
@@ -11,7 +12,7 @@ function splitParagraphs(text: string): string[] {
     .filter(Boolean);
 }
 
-export function SuggestionBuildCard({ suggestion }: SuggestionBuildCardProps) {
+export function SuggestionBuildCard({ suggestion, onSave }: SuggestionBuildCardProps) {
   const { label, gamePlan, synergySummary, build } = suggestion;
   const planParagraphs = splitParagraphs(gamePlan);
   const synergyParagraphs = splitParagraphs(synergySummary);
@@ -21,6 +22,11 @@ export function SuggestionBuildCard({ suggestion }: SuggestionBuildCardProps) {
       <header className="suggestion-card-head">
         <h4>{label}</h4>
         <span className="suggestion-playstyle">{build.playstyle}</span>
+        {onSave && (
+          <button type="button" className="suggestion-save-btn" onClick={() => onSave(build, label)}>
+            Save to loadouts
+          </button>
+        )}
       </header>
 
       <section className="suggestion-section">

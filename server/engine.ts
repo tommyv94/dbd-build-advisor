@@ -1,4 +1,5 @@
 import { handleChat } from './chat-handler.js';
+import { enrichBuildFromDb, reconcileSavedBuild } from './build-engine.js';
 import { getCharacterGuide } from './character-guide.js';
 import {
   characterToClient,
@@ -135,6 +136,23 @@ export async function handleApiRequest(
       return json(await handleChat(body as Parameters<typeof handleChat>[0]));
     }
 
+    if (segments[0] === 'builds') {
+      if (segments[1] === 'enrich' && m === 'POST') {
+        const payload = body as { build: BuildSuggestion };
+        if (!payload?.build) return error('Build is required', 400);
+        return json(enrichBuildFromDb(payload.build));
+      }
+      if (segments[1] === 'reconcile' && m === 'POST') {
+        const payload = body as {
+          build: BuildSuggestion;
+          characters?: import('../src/types.js').AppSettings['characters'];
+        };
+        if (!payload?.build) return error('Build is required', 400);
+        const characters = payload.characters ?? {};
+        return json(reconcileSavedBuild(payload.build, characters));
+      }
+    }
+
     if (segments[0] === 'profiles') {
       if (segments.length === 1 && m === 'GET') return json(await loadProfileStore());
       if (segments.length === 1 && m === 'PUT') {
@@ -196,12 +214,15 @@ export async function handleApiRequest(
           return json(profileToSettings(getActiveProfile(store)));
         }
         if (m === 'PUT') {
-          const settings = body as AppSettings & { activeRole?: Role };
+          const settings = body as AppSettings & { activeRole?: Role; onboardingComplete?: boolean };
           let store = await loadProfileStore();
           const active = getActiveProfile(store);
           store = updateProfile(store, active.id, {
             settings: settingsToProfileSettings(settings, settings.activeRole),
             openaiApiKey: settings.openaiApiKey,
+            ...(settings.onboardingComplete !== undefined
+              ? { onboardingComplete: settings.onboardingComplete }
+              : {}),
           });
           await saveProfileStore(store);
           return json(store);

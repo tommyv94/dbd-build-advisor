@@ -18,9 +18,10 @@ interface BuildCardProps {
   characters: Record<string, CharacterLoadout>;
   adjustments?: PerkAdjustment[];
   onSave?: (build: BuildSuggestion) => void;
+  onQuickSave?: (build: BuildSuggestion) => void;
 }
 
-export function BuildCard({ build, characters, adjustments, onSave }: BuildCardProps) {
+export function BuildCard({ build, characters, adjustments, onSave, onQuickSave }: BuildCardProps) {
   const adjustedIds = new Set(adjustments?.map((a) => a.perkId));
   const charId = build.characterId;
 
@@ -29,9 +30,14 @@ export function BuildCard({ build, characters, adjustments, onSave }: BuildCardP
       <div className="build-card-header">
         <span className={`role-badge role-${build.role}`}>{build.role}</span>
         <h3>{build.title}</h3>
+        {onQuickSave && (
+          <button type="button" className="build-save-btn build-quick-save-btn" onClick={() => onQuickSave(build)}>
+            Save to loadouts
+          </button>
+        )}
         {onSave && (
           <button type="button" className="build-save-btn" onClick={() => onSave(build)}>
-            Save build
+            Save as…
           </button>
         )}
         <p className="build-playstyle">{build.playstyle}</p>

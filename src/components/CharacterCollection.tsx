@@ -26,6 +26,7 @@ interface CharacterCollectionProps {
   settings: AppSettings;
   onChange: (settings: AppSettings) => void;
   onOpenAdvisor: (character: DbDCharacter) => void;
+  onSaveSuggestion?: (build: import('../types').BuildSuggestion, defaultName: string) => void;
   gameVersion?: string;
 }
 
@@ -43,6 +44,7 @@ export function CharacterCollection({
   settings,
   onChange,
   onOpenAdvisor,
+  onSaveSuggestion,
   gameVersion,
 }: CharacterCollectionProps) {
   const roleChars = useMemo(
@@ -273,6 +275,7 @@ export function CharacterCollection({
                         <SuggestionBuildCard
                           key={`${s.label}-${s.build.perks.map((p) => p.id).join('-')}`}
                           suggestion={s}
+                          onSave={onSaveSuggestion}
                         />
                       ))}
                     </ul>

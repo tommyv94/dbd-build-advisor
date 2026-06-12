@@ -7,6 +7,8 @@ import { AppDialog, type AppDialogConfig } from './components/AppDialog';
 import { EntityMark } from './components/EntityMark';
 import { FogAtmosphere } from './components/FogAtmosphere';
 import { AmbientMuteButton } from './components/AmbientMuteButton';
+import { OnboardingWizard } from './components/OnboardingWizard';
+import { BuildEditor } from './components/BuildEditor';
 import { LandingPage } from './components/LandingPage';
 import { TitleBar } from './components/TitleBar';
 import { UpdateBanner, UpdateCheckButton } from './components/UpdateBanner';
@@ -22,16 +24,19 @@ import {
   fetchPerks,
   loadSettings,
   QUICK_PROMPTS,
+  reconcileBuild,
   sendChat,
   starterMessage,
 } from './lib/api';
 import {
   activateProfile,
   activeRoleFromStore,
+  completeOnboarding,
   deleteSavedBuildFromProfile,
   fetchProfiles,
   getActiveSavedBuilds,
   migrateLegacySettings,
+  profileNeedsOnboarding,
   profileStoreToSettings,
   saveActiveProfileSettings,
   saveBuildToProfile,
@@ -50,6 +55,7 @@ import type {
 import './App.css';
 
 type Tab = 'collection' | 'advisor' | 'saved';
+type AdvisorMode = 'chat' | 'editor';
 
 function App() {
   const [profileStore, setProfileStore] = useState<ProfileStore | null>(null);
@@ -79,6 +85,8 @@ function App() {
   const [dialog, setDialog] = useState<AppDialogConfig | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [showLanding, setShowLanding] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [advisorMode, setAdvisorMode] = useState<AdvisorMode>('chat');
   const [shellExit, setShellExit] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -249,6 +257,51 @@ function App() {
     [syncProfileStore, showNotice, meta?.perkVersion],
   );
 
+  const handleQuickSaveBuild = useCallback(
+    async (build: BuildSuggestion, defaultName?: string) => {
+      const name = defaultName?.trim() || build.title || 'Saved build';
+      try {
+        const store = await saveBuildToProfile(name, build, meta?.perkVersion);
+        syncProfileStore(store);
+        showNotice(`Saved "${name}" to loadouts`);
+      } catch (e) {
+        setError(String(e));
+      }
+    },
+    [syncProfileStore, showNotice, meta?.perkVersion],
+  );
+
+  const handleApplyFix = useCallback(
+    async (saved: SavedBuild) => {
+      try {
+        const { build, adjustments } = await reconcileBuild(saved.build, settings.characters);
+        const summary =
+          adjustments.length > 0
+            ? adjustments.map((a) => `• ${a.perkName}: ${a.reasoning}`).join('\n')
+            : 'No automatic fixes available.';
+        setDialog({
+          kind: 'confirm',
+          title: 'Apply suggested fix',
+          message: `Update "${saved.name}" for the current patch?\n\n${summary}`,
+          confirmLabel: 'Apply fix',
+          onConfirm: async () => {
+            try {
+              await deleteSavedBuildFromProfile(saved.id);
+              const store = await saveBuildToProfile(saved.name, build, meta?.perkVersion);
+              syncProfileStore(store);
+              showNotice(`Updated "${saved.name}" for patch ${meta?.perkVersion ?? 'current'}`);
+            } catch (e) {
+              setError(String(e));
+            }
+          },
+        });
+      } catch (e) {
+        setError(String(e));
+      }
+    },
+    [settings.characters, meta?.perkVersion, syncProfileStore, showNotice],
+  );
+
   const handleLoadSavedBuild = useCallback(
     (saved: SavedBuild) => {
       const validation = validateSavedBuild(
@@ -350,8 +403,39 @@ function App() {
     primeOnInteraction();
     void playEnterFogStinger();
     setShellExit(true);
-    window.setTimeout(() => setShowLanding(false), 480);
-  }, [primeOnInteraction]);
+    window.setTimeout(() => {
+      setShowLanding(false);
+      if (profileStore && profileNeedsOnboarding(profileStore)) {
+        setShowOnboarding(true);
+      }
+    }, 480);
+  }, [primeOnInteraction, profileStore]);
+
+  const finishOnboarding = useCallback(
+    async (nextSettings: AppSettings, _firstMainId?: string, firstMainRole?: Role) => {
+      try {
+        const role = firstMainRole ?? advisorRole;
+        const store = await completeOnboarding(nextSettings, role);
+        syncProfileStore(store, { resetAdvisorRole: true });
+        if (firstMainRole) setAdvisorRole(firstMainRole);
+        setShowOnboarding(false);
+        showNotice('Setup complete — explore Collection or Build Advisor');
+      } catch (e) {
+        setError(String(e));
+      }
+    },
+    [advisorRole, syncProfileStore, showNotice],
+  );
+
+  const skipOnboarding = useCallback(async () => {
+    try {
+      const store = await completeOnboarding(settings, advisorRole);
+      syncProfileStore(store);
+      setShowOnboarding(false);
+    } catch (e) {
+      setError(String(e));
+    }
+  }, [settings, advisorRole, syncProfileStore]);
 
   if (showLanding) {
     return (
@@ -376,6 +460,24 @@ function App() {
         <div className="app-body app-loading">
           <p>Entering the Fog…</p>
         </div>
+      </div>
+    );
+  }
+
+  if (showOnboarding && profileStore) {
+    return (
+      <div className="app-shell">
+        <FogAtmosphere />
+        <TitleBar subtle ambientMuted={ambientMuted} onToggleAmbient={toggleAmbientMute} />
+        <OnboardingWizard
+          settings={settings}
+          survivorChars={survivorChars}
+          killerChars={killerChars}
+          survivorPerks={survivorPerks}
+          killerPerks={killerPerks}
+          onComplete={finishOnboarding}
+          onSkip={() => void skipOnboarding()}
+        />
       </div>
     );
   }
@@ -488,6 +590,7 @@ function App() {
             settings={settings}
             onChange={setSettings}
             onOpenAdvisor={handleOpenAdvisor}
+            onSaveSuggestion={handleQuickSaveBuild}
             gameVersion={meta?.perkVersion}
           />
         ) : tab === 'advisor' ? (
@@ -541,8 +644,26 @@ function App() {
                   </label>
                 )}
               </div>
+
+              <div className="advisor-mode-tabs">
+                <button
+                  type="button"
+                  className={advisorMode === 'chat' ? 'active' : ''}
+                  onClick={() => setAdvisorMode('chat')}
+                >
+                  Chat
+                </button>
+                <button
+                  type="button"
+                  className={advisorMode === 'editor' ? 'active' : ''}
+                  onClick={() => setAdvisorMode('editor')}
+                >
+                  Build lab
+                </button>
+              </div>
             </div>
 
+            {advisorMode === 'chat' ? (
             <ChatPanel
               messages={messages}
               characters={settings.characters}
@@ -550,8 +671,21 @@ function App() {
               onSend={handleSend}
               quickPrompts={QUICK_PROMPTS[advisorRole]}
               onSaveBuild={handleSaveBuild}
+              onQuickSaveBuild={handleQuickSaveBuild}
               onNewChat={handleNewChat}
             />
+            ) : (
+              <BuildEditor
+                role={advisorRole}
+                character={advisorChar}
+                perks={advisorRole === 'survivor' ? survivorPerks : killerPerks}
+                characters={settings.characters}
+                settings={settings}
+                initialBuild={currentBuild}
+                onBuildChange={setCurrentBuild}
+                onSave={handleQuickSaveBuild}
+              />
+            )}
           </div>
         ) : (
           profileStore && (
@@ -564,6 +698,7 @@ function App() {
               meta={meta}
               onLoad={handleLoadSavedBuild}
               onDelete={handleDeleteSavedBuild}
+              onApplyFix={(saved) => void handleApplyFix(saved)}
             />
           )
         )}
@@ -576,8 +711,8 @@ function App() {
             {currentBuild.perks.map((p) => p.name).join(' · ')}
           </span>
           {advisorChar && <span className="current-build-char">as {advisorChar.name}</span>}
-          <button type="button" className="current-build-save" onClick={() => handleSaveBuild(currentBuild)}>
-            Save build
+          <button type="button" className="current-build-save" onClick={() => handleQuickSaveBuild(currentBuild)}>
+            Save to loadouts
           </button>
         </aside>
       )}

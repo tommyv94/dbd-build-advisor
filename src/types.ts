@@ -126,6 +126,8 @@ export interface PlayerProfile {
   };
   openaiApiKey?: string;
   savedBuilds?: SavedBuild[];
+  /** Set after first-run onboarding wizard completes */
+  onboardingComplete?: boolean;
 }
 
 export interface SavedBuild {

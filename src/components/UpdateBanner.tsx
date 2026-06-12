@@ -3,6 +3,18 @@ import { isDesktopApp, type UpdateStatusPayload } from '../lib/api-base';
 
 export type UpdateStatus = UpdateStatusPayload;
 
+function parseReleaseNotes(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+    .replace(/^## (.+)$/gm, '<h4>$1</h4>')
+    .replace(/^- /gm, '• ')
+    .replace(/\n/g, '<br/>');
+}
+
 export function UpdateBanner() {
   const [update, setUpdate] = useState<UpdateStatus | null>(null);
   const [dismissed, setDismissed] = useState<string | null>(null);
@@ -36,10 +48,24 @@ export function UpdateBanner() {
   if (update.status === 'available' && dismissed === update.version) return null;
 
   if (update.status === 'available') {
+    const rawNotes = update.releaseNotes;
+    const notes =
+      typeof rawNotes === 'string'
+        ? rawNotes.trim()
+        : '';
     return (
       <div className="update-banner">
         <div className="update-banner-text">
           <strong>New version available</strong> — v{update.version} is ready to download.
+          {notes && (
+            <details className="update-banner-notes">
+              <summary>What&apos;s new</summary>
+              <div
+                className="update-banner-notes-body"
+                dangerouslySetInnerHTML={{ __html: parseReleaseNotes(notes) }}
+              />
+            </details>
+          )}
         </div>
         <div className="update-banner-actions">
           <button type="button" className="update-banner-primary" onClick={() => void handleDownload()}>

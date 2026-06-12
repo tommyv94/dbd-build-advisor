@@ -118,6 +118,25 @@ export async function deleteSavedBuildFromProfile(buildId: string): Promise<Prof
   return res.json();
 }
 
+export function profileNeedsOnboarding(store: ProfileStore): boolean {
+  const active = store.profiles.find((p) => p.id === store.activeProfileId) ?? store.profiles[0];
+  if (active.onboardingComplete) return false;
+  return !Object.values(active.settings.characters ?? {}).some((c) => c.configured);
+}
+
+export async function completeOnboarding(
+  settings: AppSettings,
+  activeRole?: Role,
+): Promise<ProfileStore> {
+  const res = await apiFetch('/profiles/active/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...settings, activeRole, onboardingComplete: true }),
+  });
+  if (!res.ok) throw new Error('Failed to complete onboarding');
+  return res.json();
+}
+
 export function profileStoreToSettings(store: ProfileStore): AppSettings {
   const active = store.profiles.find((p) => p.id === store.activeProfileId) ?? store.profiles[0];
   return {

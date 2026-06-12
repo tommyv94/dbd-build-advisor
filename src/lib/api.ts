@@ -5,9 +5,11 @@ import type {
   ChatMessage,
   ChatRequest,
   ChatResponse,
+  BuildSuggestion,
   DbDCharacter,
   DbDPerk,
   GameMeta,
+  PerkAdjustment,
   PerkInventory,
   PerkTier,
   Role,
@@ -56,6 +58,29 @@ export async function sendChat(req: ChatRequest): Promise<ChatResponse> {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error ?? 'Chat request failed');
   }
+  return res.json();
+}
+
+export async function enrichBuild(build: BuildSuggestion): Promise<BuildSuggestion> {
+  const res = await apiFetch('/builds/enrich', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ build }),
+  });
+  if (!res.ok) throw new Error('Failed to enrich build');
+  return res.json();
+}
+
+export async function reconcileBuild(
+  build: BuildSuggestion,
+  characters: Record<string, CharacterLoadout>,
+): Promise<{ build: BuildSuggestion; adjustments: PerkAdjustment[] }> {
+  const res = await apiFetch('/builds/reconcile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ build, characters }),
+  });
+  if (!res.ok) throw new Error('Failed to reconcile build');
   return res.json();
 }
 

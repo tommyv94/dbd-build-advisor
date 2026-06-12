@@ -27,13 +27,13 @@ https://github.com/tommyv94/dbd-build-advisor/releases/latest
 
 ## Phase 1 — Polish what you have (high impact, builds on existing code)
 
-### Distribution & trust
+### Distribution & onboarding
 
 | Item | Description | Notes |
 |------|-------------|-------|
-| Code signing | Sign the Windows installer | Reduces SmartScreen “unknown publisher” friction for friends (~$200–400/yr cert) |
 | In-app getting started | First-run wizard: pick mains → set perk tiers → optional API key | Most friends won't read the README |
 | Release notes in update banner | Show GitHub release notes when an update is available | `electron-updater` can pass `releaseNotes` |
+| Install hints (unsigned) | Short first-run note: Windows SmartScreen / macOS right-click → Open | Free alternative to paid code signing; README already documents this |
 
 ### Advisor UX
 
@@ -88,7 +88,6 @@ https://github.com/tommyv94/dbd-build-advisor/releases/latest
 | Item | Description |
 |------|-------------|
 | ~~macOS build~~ | ✅ Universal DMG + ZIP, CI on `macos-latest`, auto-update via `latest-mac.yml` |
-| Code signing (Win + Mac) | Reduces SmartScreen / Gatekeeper friction |
 | Optional hosted web build | Read-only collection + guides for people who won't install desktop app |
 
 ### Game depth (if API/data allows)
@@ -119,8 +118,7 @@ https://github.com/tommyv94/dbd-build-advisor/releases/latest
 | 1 | Visual build editor + apply-from-guide + onboarding | Core UX; reuses existing engines |
 | 2 | Perk tag search + bulk inventory + share codes | Friends set up fast and swap builds |
 | 3 | Offline cache + patch review UX | Reliability when game/API updates |
-| 4 | Code signing + macOS | Wider friend group, less install pain |
-| 5 | Local LLM / no-key advisor mode | Lower barrier without OpenAI |
+| 4 | Local LLM / no-key advisor mode | Lower barrier without OpenAI |
 
 ---
 
@@ -128,6 +126,7 @@ https://github.com/tommyv94/dbd-build-advisor/releases/latest
 
 | Item | Why not early |
 |------|----------------|
+| Code signing (Win + Mac) | Paid certs (~$200–400/yr); out of scope — friends use README / in-app install hints instead |
 | Bloodweb / Steam sync | No clean official API; high effort, fragile |
 | Cloud accounts / sync | Conflicts with local-first privacy unless explicitly desired |
 | Mobile app | DBD planning fits desktop; mobile is a separate product |
@@ -170,3 +169,9 @@ Key areas when implementing roadmap items:
 - [x] App version in UI (header + settings)
 - [x] macOS + Windows releases (universal Mac DMG, Windows NSIS, dual-platform CI)
 - [x] Release workflow dedupe fix (incomplete duplicate GitHub releases)
+- [x] First-run onboarding wizard (mains → perk tiers → optional API key)
+- [x] Install hints for unsigned desktop builds (in onboarding welcome step)
+- [x] Release notes in update banner (`What's new` expandable)
+- [x] Visual build editor / Build lab (4 slots, synergy notes via enrich API)
+- [x] One-click save from character guides, chat, and build lab
+- [x] Stronger needs-review flow (`Apply fix` on stale saved builds via reconcile API)

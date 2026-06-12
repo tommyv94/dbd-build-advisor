@@ -9,6 +9,7 @@ interface ChatPanelProps {
   onSend: (text: string) => void;
   quickPrompts: string[];
   onSaveBuild?: (build: BuildSuggestion) => void;
+  onQuickSaveBuild?: (build: BuildSuggestion, defaultName?: string) => void;
   onNewChat?: () => void;
 }
 
@@ -19,6 +20,7 @@ export function ChatPanel({
   onSend,
   quickPrompts,
   onSaveBuild,
+  onQuickSaveBuild,
   onNewChat,
 }: ChatPanelProps) {
   return (
@@ -47,6 +49,11 @@ export function ChatPanel({
                   characters={characters}
                   adjustments={msg.adjustments}
                   onSave={onSaveBuild}
+                  onQuickSave={
+                    onQuickSaveBuild
+                      ? (b) => onQuickSaveBuild(b, b.title || 'Advisor build')
+                      : undefined
+                  }
                 />
               )}
               <time className="chat-time">

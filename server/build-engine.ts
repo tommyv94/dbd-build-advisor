@@ -1,6 +1,7 @@
 import type {
   BuildPerk,
   BuildSuggestion,
+  CharacterLoadout,
   DbDPerk,
   PerkAdjustment,
   PerkInventory,
@@ -16,6 +17,7 @@ import {
   perkToClient,
   resolvePerkRef,
 } from './dbd-api.js';
+import { getPerkAccessForCharacter } from './inventory.js';
 import {
   buildGenericLoadout,
   buildKillerLoadout,
@@ -624,6 +626,129 @@ export function adjustBuildForInventory(
       perks: newPerks.slice(0, 4),
       explanation: build.explanation + ' Adjusted for your perk inventory.',
     },
+    adjustments,
+  };
+}
+
+function buildPerkAsDbDPerk(bp: BuildPerk, role: Role): DbDPerk {
+  const live = getPerk(bp.id) ?? findPerkByName(bp.name);
+  if (live) return live;
+  return {
+    id: bp.id,
+    name: bp.name,
+    description: bp.description ?? '',
+    role,
+    categories: bp.categories ?? [],
+    tunables: {},
+  };
+}
+
+/** Refresh saved builds after patch changes — replace removed perks, sync names/descriptions. */
+export function reconcileSavedBuild(
+  build: BuildSuggestion,
+  characters: Record<string, CharacterLoadout>,
+): { build: BuildSuggestion; adjustments: PerkAdjustment[] } {
+  const inventory = getPerkAccessForCharacter(build.characterId, build.role, characters);
+  const adjustments: PerkAdjustment[] = [];
+  const newPerks: BuildPerk[] = [...build.perks];
+  const workingBuild = { ...build, perks: newPerks };
+
+  for (let i = 0; i < newPerks.length; i++) {
+    const bp = newPerks[i];
+    const live = getPerk(bp.id) ?? findPerkByName(bp.name);
+
+    if (!live) {
+      const missing = buildPerkAsDbDPerk(bp, build.role);
+      const usedIds = new Set(newPerks.map((p) => p.id));
+      const replacement = findReplacement(missing, workingBuild, inventory, usedIds);
+      if (replacement) {
+        adjustments.push({
+          perkId: bp.id,
+          perkName: bp.name,
+          action: 'replace_perk',
+          userTier: inventory[bp.id] ?? 0,
+          recommendedTier: bp.recommendedTier,
+          reasoning: `${bp.name} is no longer in game data. Swapped for ${replacement.name}.`,
+          replacement,
+        });
+        newPerks[i] = replacement;
+      } else {
+        adjustments.push({
+          perkId: bp.id,
+          perkName: bp.name,
+          action: 'remove_perk',
+          userTier: inventory[bp.id] ?? 0,
+          recommendedTier: bp.recommendedTier,
+          reasoning: `${bp.name} was removed and no replacement was found.`,
+        });
+        newPerks.splice(i, 1);
+        i -= 1;
+      }
+      continue;
+    }
+
+    if (live.id !== bp.id || live.name.toLowerCase() !== bp.name.toLowerCase()) {
+      adjustments.push({
+        perkId: live.id,
+        perkName: live.name,
+        action: 'keep_lower_tier',
+        userTier: inventory[live.id] ?? inventory[bp.id] ?? 3,
+        recommendedTier: bp.recommendedTier,
+        reasoning:
+          live.name.toLowerCase() !== bp.name.toLowerCase()
+            ? `Renamed from "${bp.name}" to "${live.name}".`
+            : 'Perk ID updated in game data.',
+      });
+    }
+
+    const savedDesc = (bp.description ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+    const liveDesc = formatDescriptionWithTier(live, bp.recommendedTier)
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+    const descChanged = savedDesc && liveDesc && savedDesc !== liveDesc;
+
+    newPerks[i] = enrichBuildPerk(
+      live,
+      bp.reason || perkReason(live, build.playstyle),
+      bp.recommendedTier,
+    );
+
+    if (descChanged && !adjustments.some((a) => a.perkId === live.id)) {
+      adjustments.push({
+        perkId: live.id,
+        perkName: live.name,
+        action: 'keep_lower_tier',
+        userTier: inventory[live.id] ?? 3,
+        recommendedTier: bp.recommendedTier,
+        reasoning: `${live.name} was updated in a recent patch — description refreshed.`,
+      });
+    }
+  }
+
+  while (newPerks.length < 4) {
+    const killerProfile =
+      build.role === 'killer' && build.characterId
+        ? resolveKillerProfile(getCharacter(build.characterId), '')
+        : undefined;
+    const filler = pickSynergyPerks([], inventory, build.role, 4, killerProfile).find(
+      (p) => !newPerks.some((np) => np.id === p.id),
+    );
+    if (!filler) break;
+    newPerks.push(filler);
+  }
+
+  return {
+    build: enrichBuildFromDb({
+      ...build,
+      id: uid(),
+      perks: newPerks.slice(0, 4),
+      explanation:
+        adjustments.length > 0
+          ? `${build.explanation} Updated for recent patch changes.`.trim()
+          : build.explanation,
+    }),
     adjustments,
   };
 }
