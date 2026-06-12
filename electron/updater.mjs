@@ -7,7 +7,6 @@ const semver = require('semver');
 
 const RELEASE_PAGE = 'https://github.com/tommyv94/dbd-build-advisor/releases/latest';
 const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
-const LAUNCH_CHECK_DELAY_MS = 3_000;
 
 function sendStatus(win, payload) {
   if (win && !win.isDestroyed()) {
@@ -113,9 +112,5 @@ export function setupAutoUpdater(getMainWindow) {
 
   setInterval(runCheck, CHECK_INTERVAL_MS);
 
-  const scheduleLaunchCheck = () => {
-    setTimeout(runCheck, LAUNCH_CHECK_DELAY_MS);
-  };
-
-  return { runCheck, scheduleLaunchCheck };
+  return { runCheck, scheduleLaunchCheck: runCheck };
 }

@@ -23,4 +23,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   downloadUpdate: () => ipcRenderer.invoke('update-download'),
   installUpdate: () => ipcRenderer.invoke('update-install'),
   openReleasePage: () => ipcRenderer.invoke('update-open-page'),
+  reportWarmupProgress: (message) => ipcRenderer.send('warmup-progress', message),
+  warmupComplete: () => ipcRenderer.send('warmup-complete'),
 });

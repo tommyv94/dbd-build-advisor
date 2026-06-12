@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Build Advisor</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background: #080808;
+        color: #f0f1f2;
+        user-select: none;
+        -webkit-app-region: drag;
+      }
+      .splash {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1.75rem 1.5rem 1.25rem;
+        overflow: hidden;
+      }
+      .splash-fog {
+        position: absolute;
+        inset: -30%;
+        pointer-events: none;
+        background: radial-gradient(ellipse 70% 55% at 50% 100%, rgba(224, 40, 40, 0.35), transparent 62%);
+        animation: drift 14s ease-in-out infinite;
+      }
+      .splash-vignette {
+        position: absolute;
+        inset: 0;
+        box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.85);
+        pointer-events: none;
+      }
+      .splash-scan {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(180deg, transparent, rgba(224, 40, 40, 0.05) 50%, transparent);
+        background-size: 100% 200%;
+        animation: scan 5s linear infinite;
+        opacity: 0.45;
+      }
+      .splash-content {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        width: 100%;
+      }
+      .entity-mark {
+        position: relative;
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 1.25rem;
+      }
+      .entity-mark-ring {
+        position: absolute;
+        inset: 0;
+        border: 2px solid rgba(224, 40, 40, 0.55);
+        transform: rotate(45deg);
+        animation: pulse-ring 2.4s ease-in-out infinite;
+      }
+      .entity-mark-ring-inner {
+        inset: 14%;
+        border-width: 1px;
+        opacity: 0.75;
+      }
+      .entity-mark-core {
+        position: absolute;
+        inset: 26%;
+        background: radial-gradient(circle, #e02828 0%, #991515 70%);
+        transform: rotate(45deg);
+        box-shadow: 0 0 24px rgba(224, 40, 40, 0.65);
+        animation: pulse-core 2.4s ease-in-out infinite;
+      }
+      .splash-dbd {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.34em;
+        text-transform: uppercase;
+        color: #e02828;
+        text-shadow: 0 0 32px rgba(224, 40, 40, 0.45);
+      }
+      .splash-title {
+        margin-top: 0.45rem;
+        font-size: 1.15rem;
+        font-weight: 700;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+      }
+      .splash-version {
+        margin-top: 0.35rem;
+        font-size: 0.68rem;
+        letter-spacing: 0.12em;
+        color: #888;
+        text-transform: uppercase;
+      }
+      .splash-status {
+        margin-top: 1.35rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        color: #aaa;
+        min-height: 1.1rem;
+      }
+      .splash-bar {
+        margin: 0.85rem auto 0;
+        width: min(240px, 80%);
+        height: 3px;
+        background: rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+      }
+      .splash-bar-fill {
+        height: 100%;
+        width: 35%;
+        background: linear-gradient(90deg, #991515, #e02828);
+        animation: indeterminate 1.4s ease-in-out infinite;
+      }
+      .splash-footer {
+        position: absolute;
+        bottom: 0.65rem;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 0.58rem;
+        letter-spacing: 0.06em;
+        color: #555;
+        z-index: 1;
+      }
+      @keyframes drift {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(2%, -2%) scale(1.04); }
+      }
+      @keyframes scan {
+        0% { background-position: 0 -100%; }
+        100% { background-position: 0 200%; }
+      }
+      @keyframes pulse-ring {
+        0%, 100% { opacity: 0.45; transform: rotate(45deg) scale(1); }
+        50% { opacity: 1; transform: rotate(45deg) scale(1.05); }
+      }
+      @keyframes pulse-core {
+        0%, 100% { filter: brightness(1); }
+        50% { filter: brightness(1.2); }
+      }
+      @keyframes indeterminate {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(320%); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="splash">
+      <div class="splash-fog" aria-hidden="true"></div>
+      <div class="splash-vignette" aria-hidden="true"></div>
+      <div class="splash-scan" aria-hidden="true"></div>
+      <div class="splash-content">
+        <div class="entity-mark" aria-hidden="true">
+          <div class="entity-mark-ring"></div>
+          <div class="entity-mark-ring entity-mark-ring-inner"></div>
+          <div class="entity-mark-core"></div>
+        </div>
+        <p class="splash-dbd">Dead by Daylight</p>
+        <h1 class="splash-title">Build Advisor</h1>
+        <p class="splash-version" id="version">v…</p>
+        <p class="splash-status" id="status">Entering the Fog…</p>
+        <div class="splash-bar" aria-hidden="true"><div class="splash-bar-fill"></div></div>
+      </div>
+      <footer class="splash-footer">Fan tool · Not affiliated with Behaviour Interactive</footer>
+    </div>
+    <script>
+      const statusEl = document.getElementById('status');
+      const versionEl = document.getElementById('version');
+      if (window.splashAPI) {
+        window.splashAPI.onInit(({ version }) => {
+          versionEl.textContent = 'v' + version;
+        });
+        window.splashAPI.onStatus((message) => {
+          statusEl.textContent = message;
+        });
+      }
+    </script>
+  </body>
+</html>

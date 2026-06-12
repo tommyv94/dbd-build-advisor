@@ -1,8 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { initApiBase } from './lib/api-base';
+import { AppRoot } from './AppRoot';
 import './index.css';
-import App from './App.tsx';
 
 async function boot() {
   try {
@@ -13,7 +13,7 @@ async function boot() {
   }
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <App />
+      <AppRoot />
     </StrictMode>,
   );
 }

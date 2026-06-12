@@ -27,6 +27,14 @@ https://github.com/tommyv94/dbd-build-advisor/releases/latest
 
 ## Phase 1 — Polish what you have (high impact, builds on existing code)
 
+### Desktop shell & startup
+
+| Item | Description | Notes |
+|------|-------------|-------|
+| ~~Pre-window splash / warmup~~ | ✅ Small splash before main window; loads data + checks updates during warmup | `electron/splash.html`, `app-warmup.ts` |
+| ~~Styled update install overlay~~ | ✅ Fog-themed full-screen overlay when restarting to apply update | `UpdateInstallOverlay.tsx` |
+| ~~Landing ready state~~ | ✅ Show version + patch on Enter the Fog when data is preloaded | Uses warmup result |
+
 ### Distribution & onboarding
 
 | Item | Description | Notes |
@@ -175,3 +183,6 @@ Key areas when implementing roadmap items:
 - [x] Visual build editor / Build lab (4 slots, synergy notes via enrich API)
 - [x] One-click save from character guides, chat, and build lab
 - [x] Stronger needs-review flow (`Apply fix` on stale saved builds via reconcile API)
+- [x] Pre-window splash / warmup (game data, profiles, update check before main window)
+- [x] Styled update install overlay (fog-themed restart screen)
+- [x] Landing page shows version + patch when preloaded

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { isDesktopApp, type UpdateStatusPayload } from '../lib/api-base';
 
+import { UpdateInstallOverlay } from './UpdateInstallOverlay';
+
 export type UpdateStatus = UpdateStatusPayload;
 
 function parseReleaseNotes(text: string): string {
@@ -15,13 +17,17 @@ function parseReleaseNotes(text: string): string {
     .replace(/\n/g, '<br/>');
 }
 
-export function UpdateBanner() {
-  const [update, setUpdate] = useState<UpdateStatus | null>(null);
+export function UpdateBanner({ initialStatus }: { initialStatus?: UpdateStatus | null }) {
+  const [update, setUpdate] = useState<UpdateStatus | null>(initialStatus ?? null);
+  const [installVersion, setInstallVersion] = useState<string | undefined>();
   const [dismissed, setDismissed] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isDesktopApp() || !window.electronAPI?.onUpdateStatus) return;
     return window.electronAPI.onUpdateStatus((payload) => {
+      if (payload.status === 'downloaded') {
+        setInstallVersion(payload.version);
+      }
       setUpdate(payload);
     });
   }, []);
@@ -116,14 +122,7 @@ export function UpdateBanner() {
   }
 
   if (update.status === 'installing') {
-    return (
-      <div className="update-overlay" role="alert" aria-live="assertive">
-        <div className="update-overlay-card">
-          <strong>Updating Build Advisor</strong>
-          <p>Installing the update and restarting…</p>
-        </div>
-      </div>
-    );
+    return <UpdateInstallOverlay version={installVersion} />;
   }
 
   if (update.status === 'error') {

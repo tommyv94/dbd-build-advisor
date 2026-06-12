@@ -89,6 +89,8 @@ declare global {
       downloadUpdate?: () => Promise<{ ok?: boolean; skipped?: boolean }>;
       installUpdate?: () => Promise<void>;
       openReleasePage?: () => Promise<void>;
+      reportWarmupProgress?: (message: string) => void;
+      warmupComplete?: () => void;
     };
   }
 }

@@ -5,10 +5,15 @@ import { setupAutoUpdater } from './updater.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+const MIN_SPLASH_MS = 1_200;
+const SPLASH_WIDTH = 420;
+const SPLASH_HEIGHT = 300;
+
 let mainWindow = null;
+let splashWindow = null;
 let engine = null;
 let responseFormatter = null;
-let scheduleUpdateCheck = () => {};
+let warmupStartedAt = 0;
 
 function appRoot() {
   return path.join(__dirname, '..');
@@ -16,6 +21,10 @@ function appRoot() {
 
 function distIndexPath() {
   return path.join(appRoot(), 'dist', 'index.html');
+}
+
+function splashPath() {
+  return path.join(__dirname, 'splash.html');
 }
 
 function enginePath() {
@@ -37,6 +46,46 @@ async function startEngine() {
 
 function iconPath() {
   return path.join(appRoot(), 'build', 'icon.png');
+}
+
+function sendSplashStatus(message) {
+  if (splashWindow && !splashWindow.isDestroyed()) {
+    splashWindow.webContents.send('splash-status', message);
+  }
+}
+
+function createSplashWindow() {
+  splashWindow = new BrowserWindow({
+    width: SPLASH_WIDTH,
+    height: SPLASH_HEIGHT,
+    frame: false,
+    transparent: false,
+    resizable: false,
+    movable: true,
+    center: true,
+    show: false,
+    backgroundColor: '#080808',
+    icon: iconPath(),
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'splash-preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
+  });
+
+  splashWindow.loadFile(splashPath());
+  splashWindow.once('ready-to-show', () => {
+    splashWindow?.show();
+    splashWindow?.webContents.send('splash-init', { version: app.getVersion() });
+    sendSplashStatus('Entering the Fog…');
+  });
+
+  splashWindow.on('closed', () => {
+    splashWindow = null;
+  });
 }
 
 function createWindow() {
@@ -69,14 +118,28 @@ function createWindow() {
 
   mainWindow.loadFile(distIndexPath());
 
-  mainWindow.once('ready-to-show', () => {
-    mainWindow?.show();
-    scheduleUpdateCheck();
-  });
-
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+}
+
+function revealMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+function finishWarmupAndReveal() {
+  const elapsed = Date.now() - warmupStartedAt;
+  const delay = Math.max(0, MIN_SPLASH_MS - elapsed);
+
+  setTimeout(() => {
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.close();
+      splashWindow = null;
+    }
+    revealMainWindow();
+  }, delay);
 }
 
 ipcMain.handle('api-fetch', async (_event, apiPath, init = {}) => {
@@ -88,6 +151,14 @@ ipcMain.handle('api-fetch', async (_event, apiPath, init = {}) => {
     console.error('api-fetch error:', apiPath, err);
     throw err;
   }
+});
+
+ipcMain.on('warmup-progress', (_event, message) => {
+  sendSplashStatus(typeof message === 'string' ? message : 'Loading…');
+});
+
+ipcMain.on('warmup-complete', () => {
+  finishWarmupAndReveal();
 });
 
 ipcMain.handle('export-profiles', async (_event, json, defaultName) => {
@@ -132,17 +203,25 @@ app.whenReady().then(async () => {
     app.setAppUserModelId('com.fogbuild.dbd-advisor');
   }
   try {
+    warmupStartedAt = Date.now();
+    if (app.isPackaged) {
+      createSplashWindow();
+    }
+
     await startEngine();
     createWindow();
-    const updater = setupAutoUpdater(() => mainWindow);
-    scheduleUpdateCheck = updater.scheduleLaunchCheck;
+    setupAutoUpdater(() => mainWindow);
   } catch (err) {
     console.error(err);
     app.quit();
   }
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      warmupStartedAt = Date.now();
+      if (app.isPackaged) createSplashWindow();
+      createWindow();
+    }
   });
 });
 

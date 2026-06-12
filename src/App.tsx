@@ -22,7 +22,6 @@ import {
   fetchCharacters,
   fetchMeta,
   fetchPerks,
-  loadSettings,
   QUICK_PROMPTS,
   reconcileBuild,
   sendChat,
@@ -33,9 +32,7 @@ import {
   activeRoleFromStore,
   completeOnboarding,
   deleteSavedBuildFromProfile,
-  fetchProfiles,
   getActiveSavedBuilds,
-  migrateLegacySettings,
   profileNeedsOnboarding,
   profileStoreToSettings,
   saveActiveProfileSettings,
@@ -52,14 +49,19 @@ import type {
   Role,
   SavedBuild,
 } from './types';
+import type { AppWarmupResult } from './lib/app-warmup';
 import './App.css';
 
 type Tab = 'collection' | 'advisor' | 'saved';
 type AdvisorMode = 'chat' | 'editor';
 
-function App() {
-  const [profileStore, setProfileStore] = useState<ProfileStore | null>(null);
-  const [settings, setSettings] = useState<AppSettings>({ characters: {} });
+interface AppProps {
+  warmup: AppWarmupResult;
+}
+
+function App({ warmup }: AppProps) {
+  const [profileStore, setProfileStore] = useState<ProfileStore | null>(warmup.profileStore);
+  const [settings, setSettings] = useState<AppSettings>(warmup.settings);
   const [collectionRole, setCollectionRoleState] = useState<Role>(() => {
     const saved = sessionStorage.getItem('dbd-collection-role');
     return saved === 'killer' || saved === 'survivor' ? saved : 'survivor';
@@ -68,20 +70,20 @@ function App() {
     setCollectionRoleState(role);
     sessionStorage.setItem('dbd-collection-role', role);
   }, []);
-  const [advisorRole, setAdvisorRole] = useState<Role>('survivor');
+  const [advisorRole, setAdvisorRole] = useState<Role>(warmup.advisorRole);
   const [advisorCharacterLocked, setAdvisorCharacterLocked] = useState(false);
   const [tab, setTab] = useState<Tab>('collection');
-  const [meta, setMeta] = useState<GameMeta | null>(null);
-  const [survivorChars, setSurvivorChars] = useState<DbDCharacter[]>([]);
-  const [killerChars, setKillerChars] = useState<DbDCharacter[]>([]);
-  const [survivorPerks, setSurvivorPerks] = useState<DbDPerk[]>([]);
-  const [killerPerks, setKillerPerks] = useState<DbDPerk[]>([]);
+  const [meta, setMeta] = useState<GameMeta | null>(warmup.meta);
+  const [survivorChars, setSurvivorChars] = useState<DbDCharacter[]>(warmup.survivorChars);
+  const [killerChars, setKillerChars] = useState<DbDCharacter[]>(warmup.killerChars);
+  const [survivorPerks, setSurvivorPerks] = useState<DbDPerk[]>(warmup.survivorPerks);
+  const [killerPerks, setKillerPerks] = useState<DbDPerk[]>(warmup.killerPerks);
   const [messages, setMessages] = useState<ChatMessage[]>([starterMessage()]);
   const [currentBuild, setCurrentBuild] = useState<BuildSuggestion | undefined>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [profilesReady, setProfilesReady] = useState(false);
+  const [profilesReady] = useState(true);
   const [dialog, setDialog] = useState<AppDialogConfig | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [showLanding, setShowLanding] = useState(true);
@@ -118,26 +120,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    async function initProfiles() {
-      try {
-        let store = await fetchProfiles();
-        const legacy = loadSettings();
-        const hasLegacy = Object.values(legacy.characters).some((c) => c.configured);
-        if (hasLegacy || legacy.openaiApiKey) {
-          store = await migrateLegacySettings(legacy);
-          localStorage.removeItem('dbd-advisor-settings');
-        }
-        syncProfileStore(store, { resetAdvisorRole: true });
-      } catch (e) {
-        setError(String(e));
-      } finally {
-        setProfilesReady(true);
-      }
-    }
-    void initProfiles();
-  }, [syncProfileStore]);
-
-  useEffect(() => {
     if (!profilesReady || !profileStore) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
@@ -153,16 +135,25 @@ function App() {
   useEffect(() => {
     function refreshMeta() {
       fetchMeta()
-        .then(setMeta)
+        .then((next) => {
+          setMeta(next);
+        })
         .catch((e) => setError(String(e)));
     }
-    refreshMeta();
     const onFocus = () => refreshMeta();
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
   }, []);
 
   useEffect(() => {
+    if (!meta?.perkVersion) return;
+    if (
+      meta.perkVersion === warmup.meta.perkVersion &&
+      survivorPerks.length > 0 &&
+      killerPerks.length > 0
+    ) {
+      return;
+    }
     Promise.all([
       fetchPerks('survivor'),
       fetchPerks('killer'),
@@ -176,7 +167,7 @@ function App() {
         setKillerChars(kc);
       })
       .catch((e) => setError(String(e)));
-  }, [meta?.perkVersion]);
+  }, [meta?.perkVersion, warmup.meta.perkVersion, survivorPerks.length, killerPerks.length]);
 
   useEffect(() => {
     setMessages([starterMessage()]);
@@ -445,6 +436,7 @@ function App() {
         <LandingPage
           onEnter={enterMainApp}
           ready={profilesReady}
+          patchVersion={meta?.perkVersion}
           ambientMuted={ambientMuted}
           onToggleAmbient={toggleAmbientMute}
         />
@@ -562,7 +554,7 @@ function App() {
 
       {error && <div className="error-banner">{error}</div>}
       {notice && <div className="notice-banner">{notice}</div>}
-      <UpdateBanner />
+      <UpdateBanner initialStatus={warmup.initialUpdateStatus} />
 
       <nav className="tab-nav dbd-tabs">
         <button

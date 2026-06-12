@@ -2,16 +2,24 @@ import { useEffect, useState } from 'react';
 import { EntityMark } from './EntityMark';
 import { AmbientMuteButton } from './AmbientMuteButton';
 import { isDesktopApp } from '../lib/api-base';
+import { APP_VERSION } from '../lib/app-version';
 import './LandingPage.css';
 
 interface LandingPageProps {
   onEnter: () => void;
   ready?: boolean;
+  patchVersion?: string;
   ambientMuted?: boolean;
   onToggleAmbient?: () => void;
 }
 
-export function LandingPage({ onEnter, ready = true, ambientMuted, onToggleAmbient }: LandingPageProps) {
+export function LandingPage({
+  onEnter,
+  ready = true,
+  patchVersion,
+  ambientMuted,
+  onToggleAmbient,
+}: LandingPageProps) {
   const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
@@ -57,6 +65,13 @@ export function LandingPage({ onEnter, ready = true, ambientMuted, onToggleAmbie
         <p className="landing-dbd-title">Dead by Daylight</p>
         <h1 className="landing-advisor-title">Build Advisor</h1>
         <p className="landing-tagline">Perk builds matched to your inventory — Killer powers included.</p>
+        {ready && (
+          <p className="landing-ready-meta">
+            v{APP_VERSION}
+            {patchVersion ? ` · Patch ${patchVersion}` : ''}
+            {isDesktopApp() ? ' · Ready' : ''}
+          </p>
+        )}
 
         <button type="button" className="landing-enter dbd-btn-primary" onClick={onEnter} disabled={!ready}>
           {ready ? 'Enter the Fog' : 'Loading…'}
