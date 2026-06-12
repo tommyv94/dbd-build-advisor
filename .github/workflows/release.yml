@@ -31,6 +31,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-mac:
+    needs: build-windows
     runs-on: macos-latest
     steps:
       - name: Checkout
@@ -77,9 +78,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
-          ASSETS=$(gh release view "$TAG" --repo "${{ github.repository }}" --json assets --jq '.assets[].name')
+          REPO="${{ github.repository }}"
+          ASSETS=$(gh api "repos/$REPO/releases" --jq ".[] | select(.tag_name==\"$TAG\") | .assets[].name" | sort -u)
           echo "$ASSETS"
           echo "$ASSETS" | grep -q 'latest.yml'
           echo "$ASSETS" | grep -q 'latest-mac.yml'
           echo "$ASSETS" | grep -q '\.exe$'
           echo "$ASSETS" | grep -qE '\.dmg$|\.zip$'
+          COUNT=$(gh api "repos/$REPO/releases" --jq "[.[] | select(.tag_name==\"$TAG\")] | length")
+          if [ "$COUNT" != "1" ]; then
+            echo "Expected 1 release for $TAG, found $COUNT"
+            exit 1
+          fi
