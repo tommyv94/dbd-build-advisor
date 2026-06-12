@@ -447,6 +447,22 @@ body {
   letter-spacing: 0.04em;
 }
 
+.settings-rerun-onboarding {
+  display: block;
+  margin-top: 0.65rem;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.75rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.settings-rerun-onboarding:hover {
+  border-color: rgba(224, 40, 40, 0.4);
+  color: var(--text);
+}
+
 .error-banner {
   border-color: var(--blood);
   color: #ff8a9a;

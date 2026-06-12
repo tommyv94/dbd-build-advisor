@@ -50,10 +50,24 @@ function defaultProfile(name = 'Default'): PlayerProfile {
   };
 }
 
+function profileHasLegacyUsage(profile: PlayerProfile): boolean {
+  const chars = profile.settings?.characters ?? {};
+  if (Object.values(chars).some((c) => c.configured)) return true;
+  if ((profile.savedBuilds?.length ?? 0) > 0) return true;
+  if (profile.openaiApiKey) return true;
+  return false;
+}
+
 function migrateProfile(profile: PlayerProfile): PlayerProfile {
+  let onboardingComplete = profile.onboardingComplete;
+  // Existing profiles from before onboarding shipped — don't force the wizard on upgrade.
+  if (onboardingComplete !== true && profileHasLegacyUsage(profile)) {
+    onboardingComplete = true;
+  }
   return {
     ...profile,
     savedBuilds: profile.savedBuilds ?? [],
+    onboardingComplete,
   };
 }
 

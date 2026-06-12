@@ -14,6 +14,7 @@ interface OnboardingWizardProps {
   killerChars: DbDCharacter[];
   survivorPerks: DbDPerk[];
   killerPerks: DbDPerk[];
+  initialStep?: Step;
   onComplete: (settings: AppSettings, firstMainId?: string, firstMainRole?: Role) => void;
   onSkip: () => void;
 }
@@ -26,11 +27,13 @@ export function OnboardingWizard({
   killerChars,
   survivorPerks,
   killerPerks,
+  initialStep = 'welcome',
   onComplete,
   onSkip,
 }: OnboardingWizardProps) {
-  const showInstallHints = isDesktopApp() && !localStorage.getItem(INSTALL_HINTS_KEY);
-  const [step, setStep] = useState<Step>(showInstallHints ? 'welcome' : 'mains');
+  const showInstallHints =
+    initialStep === 'welcome' && isDesktopApp() && !localStorage.getItem(INSTALL_HINTS_KEY);
+  const [step, setStep] = useState<Step>(showInstallHints ? 'welcome' : initialStep === 'welcome' ? 'mains' : initialStep);
   const [settings] = useState<AppSettings>(initialSettings);
   const [selectedMains, setSelectedMains] = useState<Set<string>>(new Set());
   const [tierPresets, setTierPresets] = useState<Record<string, TierPreset>>({});
@@ -96,13 +99,16 @@ export function OnboardingWizard({
 
         <div className="onboarding-steps" aria-hidden>
           {(['welcome', 'mains', 'tiers', 'api-key'] as Step[]).map((s, i) => (
-            <span key={s} className={`onboarding-step-dot ${step === s ? 'active' : ''}`}>
-              {i + 1}
+            <span
+              key={s}
+              className={`onboarding-step-dot ${step === s ? 'active' : ''} ${showInstallHints || initialStep === 'welcome' ? '' : i === 0 ? 'onboarding-step-skipped' : ''}`}
+            >
+              {showInstallHints || initialStep === 'welcome' ? i + 1 : i}
             </span>
           ))}
         </div>
 
-        {step === 'welcome' && (
+        {step === 'welcome' && showInstallHints && (
           <section className="onboarding-section">
             <h3>First-time install</h3>
             <p className="onboarding-prose">

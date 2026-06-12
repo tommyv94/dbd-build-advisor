@@ -120,8 +120,13 @@ export async function deleteSavedBuildFromProfile(buildId: string): Promise<Prof
 
 export function profileNeedsOnboarding(store: ProfileStore): boolean {
   const active = store.profiles.find((p) => p.id === store.activeProfileId) ?? store.profiles[0];
-  if (active.onboardingComplete) return false;
-  return !Object.values(active.settings.characters ?? {}).some((c) => c.configured);
+  return active.onboardingComplete !== true;
+}
+
+export async function resetActiveProfileOnboarding(): Promise<ProfileStore> {
+  const res = await apiFetch('/profiles/active/onboarding-reset', { method: 'POST' });
+  if (!res.ok) throw new Error('Failed to reset onboarding');
+  return res.json();
 }
 
 export async function completeOnboarding(

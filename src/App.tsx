@@ -12,7 +12,7 @@ import { BuildEditor } from './components/BuildEditor';
 import { LandingPage } from './components/LandingPage';
 import { TitleBar } from './components/TitleBar';
 import { UpdateBanner, UpdateCheckButton } from './components/UpdateBanner';
-import { APP_VERSION } from './lib/app-version';
+import { useAppVersion } from './hooks/useAppVersion';
 import { useAmbientAudio } from './hooks/useAmbientAudio';
 import { playEnterFogStinger } from './lib/ui-sounds';
 import { summarizeBuildIssues, validateSavedBuild } from './lib/build-staleness';
@@ -35,6 +35,7 @@ import {
   getActiveSavedBuilds,
   profileNeedsOnboarding,
   profileStoreToSettings,
+  resetActiveProfileOnboarding,
   saveActiveProfileSettings,
   saveBuildToProfile,
 } from './lib/profiles';
@@ -60,6 +61,8 @@ interface AppProps {
 }
 
 function App({ warmup }: AppProps) {
+  const needsOnboardingInitially = profileNeedsOnboarding(warmup.profileStore);
+  const appVersion = useAppVersion();
   const [profileStore, setProfileStore] = useState<ProfileStore | null>(warmup.profileStore);
   const [settings, setSettings] = useState<AppSettings>(warmup.settings);
   const [collectionRole, setCollectionRoleState] = useState<Role>(() => {
@@ -86,8 +89,9 @@ function App({ warmup }: AppProps) {
   const [profilesReady] = useState(true);
   const [dialog, setDialog] = useState<AppDialogConfig | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [showLanding, setShowLanding] = useState(true);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showLanding, setShowLanding] = useState(!needsOnboardingInitially);
+  const [showOnboarding, setShowOnboarding] = useState(needsOnboardingInitially);
+  const [onboardingFromSettings, setOnboardingFromSettings] = useState(false);
   const [advisorMode, setAdvisorMode] = useState<AdvisorMode>('chat');
   const [shellExit, setShellExit] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -394,13 +398,8 @@ function App({ warmup }: AppProps) {
     primeOnInteraction();
     void playEnterFogStinger();
     setShellExit(true);
-    window.setTimeout(() => {
-      setShowLanding(false);
-      if (profileStore && profileNeedsOnboarding(profileStore)) {
-        setShowOnboarding(true);
-      }
-    }, 480);
-  }, [primeOnInteraction, profileStore]);
+    window.setTimeout(() => setShowLanding(false), 480);
+  }, [primeOnInteraction]);
 
   const finishOnboarding = useCallback(
     async (nextSettings: AppSettings, _firstMainId?: string, firstMainRole?: Role) => {
@@ -410,6 +409,7 @@ function App({ warmup }: AppProps) {
         syncProfileStore(store, { resetAdvisorRole: true });
         if (firstMainRole) setAdvisorRole(firstMainRole);
         setShowOnboarding(false);
+        setOnboardingFromSettings(false);
         showNotice('Setup complete — explore Collection or Build Advisor');
       } catch (e) {
         setError(String(e));
@@ -423,10 +423,23 @@ function App({ warmup }: AppProps) {
       const store = await completeOnboarding(settings, advisorRole);
       syncProfileStore(store);
       setShowOnboarding(false);
+      setOnboardingFromSettings(false);
     } catch (e) {
       setError(String(e));
     }
   }, [settings, advisorRole, syncProfileStore]);
+
+  const handleRerunOnboarding = useCallback(async () => {
+    try {
+      const store = await resetActiveProfileOnboarding();
+      syncProfileStore(store);
+      setOnboardingFromSettings(true);
+      setShowLanding(false);
+      setShowOnboarding(true);
+    } catch (e) {
+      setError(String(e));
+    }
+  }, [syncProfileStore]);
 
   if (showLanding) {
     return (
@@ -467,6 +480,7 @@ function App({ warmup }: AppProps) {
           killerChars={killerChars}
           survivorPerks={survivorPerks}
           killerPerks={killerPerks}
+          initialStep={onboardingFromSettings ? 'mains' : 'welcome'}
           onComplete={finishOnboarding}
           onSkip={() => void skipOnboarding()}
         />
@@ -488,7 +502,7 @@ function App({ warmup }: AppProps) {
                 <h1 className="header-advisor-title">Build Advisor</h1>
                 <p className="header-sub">
                   {meta ? `Patch ${meta.perkVersion}` : 'Syncing…'}
-                  {isDesktopApp() ? ` · v${APP_VERSION}` : ''}
+                  {isDesktopApp() ? ` · v${appVersion}` : ''}
                 </p>
               </div>
             </div>
@@ -548,7 +562,10 @@ function App({ warmup }: AppProps) {
             />
           </label>
           <UpdateCheckButton />
-          <p className="app-version">Build Advisor v{APP_VERSION}</p>
+          <button type="button" className="settings-rerun-onboarding" onClick={() => void handleRerunOnboarding()}>
+            Run setup wizard again
+          </button>
+          <p className="app-version">Build Advisor v{appVersion}</p>
         </div>
       )}
 

@@ -208,6 +208,13 @@ export async function handleApiRequest(
           return json(store);
         }
       }
+      if (segments[1] === 'active' && segments[2] === 'onboarding-reset' && m === 'POST') {
+        let store = await loadProfileStore();
+        const active = getActiveProfile(store);
+        store = updateProfile(store, active.id, { onboardingComplete: false });
+        await saveProfileStore(store);
+        return json(store);
+      }
       if (segments[1] === 'active' && segments[2] === 'settings') {
         if (m === 'GET') {
           const store = await loadProfileStore();

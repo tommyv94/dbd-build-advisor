@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { EntityMark } from './EntityMark';
 import { AmbientMuteButton } from './AmbientMuteButton';
 import { isDesktopApp } from '../lib/api-base';
-import { APP_VERSION } from '../lib/app-version';
+import { useAppVersion } from '../hooks/useAppVersion';
 import './LandingPage.css';
 
 interface LandingPageProps {
@@ -20,6 +20,7 @@ export function LandingPage({
   ambientMuted,
   onToggleAmbient,
 }: LandingPageProps) {
+  const appVersion = useAppVersion();
   const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
@@ -67,7 +68,7 @@ export function LandingPage({
         <p className="landing-tagline">Perk builds matched to your inventory — Killer powers included.</p>
         {ready && (
           <p className="landing-ready-meta">
-            v{APP_VERSION}
+            v{appVersion}
             {patchVersion ? ` · Patch ${patchVersion}` : ''}
             {isDesktopApp() ? ' · Ready' : ''}
           </p>
