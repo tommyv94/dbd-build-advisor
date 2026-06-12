@@ -52,6 +52,23 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
+      - name: Remove incomplete duplicate release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          REPO="${{ github.repository }}"
+          for id in $(gh api "repos/$REPO/releases" --jq ".[] | select(.tag_name==\"$TAG\") | .id"); do
+            names=$(gh api "repos/$REPO/releases/$id/assets" --jq '.[].name' | tr '\n' ' ')
+            echo "Release $id assets: $names"
+            if echo "$names" | grep -qE 'latest\.yml|latest-mac\.yml|\.exe|\.dmg|\.zip'; then
+              echo "Keeping release $id"
+            else
+              echo "Deleting incomplete release $id for $TAG"
+              gh api -X DELETE "repos/$REPO/releases/$id"
+            fi
+          done
+
   verify-release:
     needs: [build-windows, build-mac]
     runs-on: ubuntu-latest
